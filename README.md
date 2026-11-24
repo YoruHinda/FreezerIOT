@@ -112,12 +112,3 @@ Freezer-Inteligente/
     ├── style.css
     └── script.js
 ```
-
-## Próximas etapas
-
-1. Validar sincronização do limite nos dois sentidos.
-2. Montar o circuito físico em placa adequada.
-3. Instalar sensor e caixa de proteção.
-4. Testar por período prolongado e comparar leituras com instrumento de referência.
-5. Ajustar limites conforme o produto armazenado.
-6. Avaliar backend, licença comercial, conectividade e manutenção.
