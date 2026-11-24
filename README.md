@@ -1,144 +1,123 @@
 # Freezer Inteligente
 
-Projeto acadêmico de extensão do curso de Ciência da Computação que monitora automaticamente a temperatura de freezers, armazena o histórico das medições e gera alertas quando a temperatura ultrapassa o limite configurado pelo usuário.
+Sistema IoT para monitoramento da temperatura de freezers, com visualização local e remota, histórico de medições e alertas.
 
-A proposta é ser **simples, automático e de baixo custo**: não há LCD, teclado (keypad) nem relé. A configuração e o acompanhamento são feitos inteiramente pelo dashboard web.
+## Objetivo
 
-## Simulação no Tinkercad
+Acompanhar a temperatura de um freezer e sinalizar quando ela ultrapassar o limite configurado. A proposta é apoiar pequenos estabelecimentos que precisam monitorar produtos refrigerados ou congelados. O sistema monitora e alerta; **não controla o compressor**.
 
-A simulação inicial do circuito (Arduino Uno + sensor TMP36) está disponível em:
+## Arquitetura
 
-https://www.tinkercad.com/things/5cHnz8u3eee-projeto-extensao?sharecode=lH3KOc4sC8tpkqf0Y6gNTVFd0NH-oNvZlGywE_Frkt0
-
-O Tinkercad não simula Wi-Fi e o Arduino Uno não possui Wi-Fi. Por isso, a simulação serve para validar a lógica de leitura de temperatura, e o envio de dados pela internet é feito na versão física com ESP32.
-
-## Como funciona
-
-1. O sensor mede a temperatura do freezer.
-2. O ESP32 envia a medição pela internet (Wi-Fi).
-3. O ThingSpeak armazena as medições.
-4. O dashboard lê os dados do ThingSpeak e mostra a temperatura atual e o histórico.
-5. O usuário define o limite máximo de temperatura diretamente no dashboard.
-6. O sistema classifica o freezer em **normal**, **atenção** ou **crítico** e exibe os alertas.
-
-```
-Sensor DS18B20 -> ESP32 -> ThingSpeak -> Dashboard web
-                  (Wi-Fi)   (nuvem)      (leitura + limite + alertas)
+```text
+DS18B20 → ESP32 → Wi-Fi → ThingSpeak → Dashboard web
+             ↑                         |
+       LCD 16x2 + Keypad 4x4 ←─────────┘
 ```
 
-O ESP32 apenas grava no ThingSpeak e o dashboard apenas lê de lá. Os dois não se comunicam diretamente. O limite de temperatura fica guardado no dashboard e é comparado com cada leitura recebida.
+## Componentes previstos
 
-## Tecnologias
+- ESP32 DevKit V1: processamento e conexão Wi-Fi.
+- Sensor DS18B20 impermeável: medição de temperatura.
+- LCD 16x2 I2C: temperatura, limite e estado local.
+- Keypad 4x4: alteração manual do limite.
+- Resistor 4,7 kΩ: pull-up do barramento One-Wire.
+- Fonte USB 5 V, placa perfurada, fios, conectores e caixa de proteção.
 
-| Etapa | Tecnologia |
-| --- | --- |
-| Simulação do circuito | Tinkercad |
-| Simulação inicial | Arduino Uno + sensor TMP36 |
-| Versão física | ESP32 + sensor DS18B20 (com Wi-Fi) |
-| Armazenamento dos dados | ThingSpeak |
-| Dashboard | HTML, CSS e JavaScript |
-| API própria (possibilidade futura) | Spring Boot e PostgreSQL |
+## Funcionamento
 
-## Hardware (versão física)
+1. O DS18B20 mede a temperatura.
+2. O ESP32 compara a leitura com o limite salvo.
+3. O LCD apresenta temperatura, limite e estado.
+4. O keypad permite alterar o limite localmente.
+5. O ESP32 envia os dados ao ThingSpeak.
+6. O dashboard consulta o canal e mostra indicadores, histórico e alertas.
+7. O dashboard pode enviar uma solicitação remota de alteração do limite; o ESP32 deve consultar, aplicar e confirmar o valor.
 
-- 1 placa ESP32 (ESP32 Dev Module)
-- 1 sensor de temperatura DS18B20 (recomendado em versão à prova d'água para uso em freezer)
-- 1 resistor de 4,7 kΩ
-- Protoboard e jumpers
-- Fonte USB de 5 V
+### Estados do protótipo
 
-### Ligações
+- **Normal:** temperatura menor ou igual ao limite.
+- **Atenção:** temperatura acima do limite, até 2 °C acima.
+- **Crítico:** temperatura acima do limite + 2 °C.
 
-| DS18B20 | ESP32 |
-| --- | --- |
-| VDD (vermelho) | 3V3 |
-| GND (preto) | GND |
-| DATA (amarelo) | GPIO 4 |
+Os limites são parâmetros iniciais do protótipo e devem ser definidos conforme o produto armazenado e os procedimentos do estabelecimento.
 
-O resistor de 4,7 kΩ deve ficar entre o pino DATA e o 3V3 (pull-up).
+## Campos ThingSpeak
 
-## Firmware do ESP32
+| Campo | Nome | Conteúdo |
+|---|---|---|
+| Field 1 | Temperatura | Leitura em °C |
+| Field 2 | Limite | Limite aplicado no ESP32 |
+| Field 3 | Status | 1 normal, 2 atenção, 3 crítico |
+| Field 4 | Limite remoto | Solicitação enviada pelo dashboard |
 
-O código está no arquivo `freezer_inteligente_esp32.ino`.
+O Field 2 representa o limite confirmado no equipamento; o Field 4 transporta a solicitação remota. A sincronização precisa ser testada com o canal real para garantir que uma telemetria não apague um comando ainda não processado.
 
-- Lê a temperatura do DS18B20.
-- Envia o valor ao ThingSpeak (campo `field1`) a cada 20 segundos. O plano gratuito do ThingSpeak exige no mínimo 15 segundos entre envios.
-- Reconecta ao Wi-Fi automaticamente se a conexão cair.
-- Descarta leituras inválidas, como sensor desconectado, para que valores como -127 °C não cheguem ao dashboard.
+## Ferramentas e tecnologias da prototipação
 
-### Bibliotecas necessárias
+- **Wokwi:** simulação da arquitetura atual com ESP32 e periféricos.
+- **Tinkercad Circuits:** exploração inicial de circuitos com Arduino, antes da migração para ESP32.
+- **ThingSpeak:** armazenamento e troca de dados via API.
+- **HTML:** estrutura do dashboard.
+- **CSS:** aparência e responsividade.
+- **JavaScript:** leitura/escrita da API, atualização de indicadores, gráfico e alertas.
+- **Arduino Core para ESP32:** firmware.
+- **Bibliotecas:** WiFi, HTTPClient, OneWire, DallasTemperature, Keypad, Wire, LiquidCrystal_I2C, Preferences e ArduinoJson.
 
-Instale pelo Gerenciador de Bibliotecas da Arduino IDE:
+## Como executar
 
-- OneWire (Paul Stoffregen)
-- DallasTemperature (Miles Burton)
+### ThingSpeak
+Crie um canal chamado **Freezer Inteligente** com os quatro campos da tabela. Copie Channel ID, Read API Key (se privado) e Write API Key.
 
-Instale também o pacote de placas **esp32 by Espressif Systems** e selecione a placa **ESP32 Dev Module**.
+### Firmware
+Abra `sketch.ino` no Wokwi ou ambiente compatível com Arduino-ESP32. Configure Wi-Fi e credenciais ThingSpeak. Instale as bibliotecas externas listadas em `libraries.txt`.
 
-### Configuração do firmware
+### Dashboard
+Mantenha `index.html`, `style.css` e `script.js` na mesma pasta. No início de `script.js`, configure:
 
-No início do arquivo `.ino`, ajuste:
-
-- o nome e a senha da rede Wi-Fi;
-- a Write API Key do canal do ThingSpeak.
-
-Depois grave na placa e abra o Monitor Serial a 115200 baud. Ao iniciar, ele mostra quantos sensores DS18B20 foram encontrados e, a cada envio, a temperatura e a resposta do ThingSpeak.
-
-## ThingSpeak
-
-1. Crie uma conta e um canal no ThingSpeak.
-2. Ative o `Field 1` e nomeie como "Temperatura".
-3. Copie a Write API Key (usada no ESP32) e o Channel ID (usado no dashboard).
-4. Deixe o canal público, ou use a Read API Key no dashboard se o canal for privado.
-
-A Write API Key nunca deve ser colocada no código do dashboard, apenas no firmware do ESP32.
-
-Os dados podem ser lidos por esta forma de URL:
-
-```
-https://api.thingspeak.com/channels/<ID_DO_CANAL>/fields/1.json?results=50
+```javascript
+const CHANNEL_ID = "SEU_CHANNEL_ID";
+const READ_API_KEY = ""; // vazio para canal público
+const WRITE_API_KEY = "SUA_WRITE_API_KEY";
 ```
 
-## Dashboard
+A Write API Key inserida no JavaScript fica visível aos visitantes. Isso serve apenas para prototipação. Em produção, use backend para proteger a chave.
 
-O dashboard é feito em HTML, CSS e JavaScript e apresenta:
+## Situação e limitações
 
-- temperatura atual;
-- limite máximo configurável pelo usuário;
-- status do freezer (normal, atenção ou crítico);
-- gráfico com o histórico de temperatura;
-- alertas recentes.
+O firmware, a interface e a arquitetura de comunicação foram preparados para prototipação. A integração ponta a ponta deve ser validada com o canal ThingSpeak efetivo e, depois, com hardware físico. Não considerar o projeto pronto para operação comercial antes de testes prolongados, comparação com instrumento de referência, avaliação de confiabilidade e verificação das exigências aplicáveis.
 
-Atualmente o protótipo utiliza dados simulados. A integração com o ThingSpeak consiste em substituir a fonte de dados simulada por uma requisição `fetch` à API do ThingSpeak, atualizada a cada 20 segundos, o mesmo intervalo de envio do ESP32.
+O protótipo não possui relé, não aciona o compressor e não substitui termômetro de referência nem procedimentos de segurança do estabelecimento.
 
-## Estados do freezer
+## Cuidados de instalação
 
-O status é calculado comparando a temperatura atual com o limite definido pelo usuário:
+- Não conectar o ESP32 à alimentação do compressor.
+- Utilizar fonte USB certificada.
+- Proteger a eletrônica contra condensação e respingos.
+- Fixar a sonda sem danificar a vedação do freezer.
+- Verificar a tensão do barramento I2C: GPIOs do ESP32 trabalham com 3,3 V e não devem receber 5 V. Se necessário, usar conversor de nível lógico.
+- Para uso comercial, verificar a licença ThingSpeak; a modalidade gratuita é destinada a projetos não comerciais.
 
-| Estado | Significado |
-| --- | --- |
-| Normal | Temperatura dentro do limite |
-| Atenção | Temperatura próxima do limite |
-| Crítico | Temperatura acima do limite |
+## Vídeo de demonstração
 
-## Etapas do projeto
+**Inserir o link do vídeo de montagem, simulação ou funcionamento do protótipo:** [LINK DO VÍDEO]
 
-- [x] Simulação do circuito no Tinkercad (Arduino Uno + TMP36)
-- [x] Protótipo do dashboard com dados simulados
-- [x] Firmware do ESP32 com DS18B20 e envio ao ThingSpeak
-- [ ] Integração do dashboard com o ThingSpeak
-- [ ] Testes com o sensor real em um freezer
-- [ ] API própria com Spring Boot e PostgreSQL (possibilidade futura)
+## Estrutura
 
-## Estrutura do repositório
-
-```
-.
-├── README.md
-├── freezer_inteligente_esp32.ino   # firmware do ESP32
-└── dashboard/                      # HTML, CSS e JavaScript do dashboard
+```text
+Freezer-Inteligente/
+├── sketch.ino
+├── libraries.txt
+└── dashboard/
+    ├── index.html
+    ├── style.css
+    └── script.js
 ```
 
-## Contexto acadêmico
+## Próximas etapas
 
-Projeto desenvolvido como atividade de extensão do curso de Ciência da Computação, com foco em soluções acessíveis de monitoramento de temperatura para conservação de alimentos e materiais sensíveis.
+1. Validar sincronização do limite nos dois sentidos.
+2. Montar o circuito físico em placa adequada.
+3. Instalar sensor e caixa de proteção.
+4. Testar por período prolongado e comparar leituras com instrumento de referência.
+5. Ajustar limites conforme o produto armazenado.
+6. Avaliar backend, licença comercial, conectividade e manutenção.

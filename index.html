@@ -1,100 +1,89 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Freezer Inteligente — Dashboard</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Freezer Inteligente</title>
+    <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
-  <main>
-    <header>
-      <div class="brand">
-        <div class="mark">❄</div>
-        <div><strong>Freezer Inteligente</strong><small>Monitoramento de temperatura</small></div>
-      </div>
-      <div class="header-right"><span class="live"><i class="dot"></i> Demonstração ativa</span><span
-          id="clock">--:--:--</span></div>
-    </header>
+    <main class="container">
+        <header class="header">
+            <div>
+                <span class="eyebrow">MONITORAMENTO IoT</span>
+                <h1>Freezer Inteligente</h1>
+                <p>Acompanhamento de temperatura</p>
+            </div>
+            <div class="connection">
+                <span id="connectionDot"></span>
+                <span id="connectionText">Aguardando conexão</span>
+            </div>
+        </header>
 
-    <h1>Dashboard</h1>
-    <p class="intro">Acompanhamento das condições do freezer.</p>
+        <section id="criticalBanner" class="critical-banner" role="alert" aria-live="assertive" hidden>
+            <div class="critical-banner-title">⚠ ALERTA CRÍTICO</div>
+            <p id="criticalMessage">A temperatura ultrapassou o limite configurado. Verifique o freezer.</p>
+        </section>
 
-    <div class="statusline">
-      <h2>Resumo do equipamento</h2>
-      <span class="status" id="globalStatus">● Normal</span>
-    </div>
+        <section class="cards">
+            <article class="card temperature-card">
+                <span>Temperatura atual</span>
+                <h2 id="temperature">--.- °C</h2>
+                <small id="lastUpdate">Aguardando dados</small>
+            </article>
+            <article class="card">
+                <span>Limite aplicado</span>
+                <h2 id="limit">--.- °C</h2>
+                <small>Último limite confirmado pelo equipamento</small>
+            </article>
+            <article class="card">
+                <span>Condição do freezer</span>
+                <h2 id="status" class="status">---</h2>
+                <small id="statusDescription">Sem medições</small>
+            </article>
+        </section>
 
-    <section class="metrics">
-      <div class="card">
-        <div class="metric-label">Temperatura atual</div>
-        <div class="metric-value" id="currentTemp">-18,0 °C</div>
-        <div class="metric-note" id="lastRead">Última leitura agora</div>
-      </div>
-      <div class="card">
-        <div class="metric-label">Limite configurado</div>
-        <div class="metric-value" id="limitDisplay">-18,0 °C</div>
-        <div class="metric-note">Temperatura máxima definida</div>
-      </div>
-      <div class="card">
-        <div class="metric-label">Condição do freezer</div>
-        <div class="metric-value" id="stateText" style="font-size:23px">Normal</div>
-        <div class="metric-note" id="stateSub">Dentro da faixa configurada</div>
-      </div>
-    </section>
+        <section class="panel remote-settings">
+            <div class="panel-header">
+                <div>
+                    <h3>Configurar limite remotamente</h3>
+                    <p>O novo limite será enviado ao ESP32 e exibido no LCD após a sincronização.</p>
+                </div>
+            </div>
+            <form id="limitForm" class="limit-form">
+                <label for="remoteLimit">Novo limite (°C)</label>
+                <input id="remoteLimit" type="number" min="-40" max="15" step="0.1" placeholder="Ex.: -18.0" required>
+                <button id="limitButton" type="submit">Atualizar limite</button>
+            </form>
+            <p id="message" aria-live="polite">Aguardando conexão com o ThingSpeak.</p>
+            <p id="syncStatus" class="sync-status">O limite remoto será confirmado quando o ESP32 publicar o novo valor.</p>
+        </section>
 
-    <section class="main-grid">
-      <div class="card">
-        <div class="card-head">
-          <div>
-            <h3>Histórico de temperatura</h3>
-            <p>Leituras recentes do sensor</p>
-          </div><span style="font-size:10px;color:var(--muted)">Atualização automática</span>
-        </div>
-        <div class="chart-wrap"><canvas id="chart" width="850" height="300"></canvas></div>
-        <div class="legend"><span><i class="line-key"></i>Temperatura</span><span><i class="dash-key"></i>Limite
-            configurado</span></div>
-      </div>
-      <div class="card">
-        <div class="card-head">
-          <div>
-            <h3>Alertas recentes</h3>
-            <p>Alterações no estado do equipamento</p>
-          </div><span id="alertBadge" class="status">Tudo certo</span>
-        </div>
-        <div class="alert-list" id="alertList">
-          <div style="font-size:11px;color:var(--muted);padding:12px 0">Nenhum alerta registrado.</div>
-        </div>
-      </div>
-    </section>
+        <section class="content-grid">
+            <article class="panel chart-panel">
+                <div class="panel-header">
+                    <div>
+                        <h3>Histórico de temperatura</h3>
+                        <p>Últimas medições recebidas</p>
+                    </div>
+                </div>
+                <canvas id="temperatureChart"></canvas>
+            </article>
+            <article class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h3>Alertas recentes</h3>
+                        <p>Eventos identificados pelo sistema</p>
+                    </div>
+                </div>
+                <div id="alerts" class="alerts">
+                    <p class="empty">Nenhum alerta recebido.</p>
+                </div>
+            </article>
+        </section>
 
-    <section class="card config-card">
-      <h3>Configurar temperatura</h3>
-      <p>Defina o limite máximo permitido para o freezer.</p>
-
-      <div class="config-controls">
-        <input type="number" id="limiteTemperatura" value="-18" step="0.5" placeholder="Temperatura em °C">
-
-        <button onclick="salvarLimite()">
-          Salvar limite
-        </button>
-      </div>
-
-      <small id="mensagemConfig"></small>
-    </section>
-
-    <div class="card equipment">
-      <div class="equip-left">
-        <div class="equip-symbol">❄</div>
-        <div><b>Freezer principal</b><small>FRZ-001 · Sensor TMP36 (simulado) · Canal A0</small></div>
-      </div>
-      <span class="status" id="equipStatus">Conectado</span>
-    </div>
-    <div class="footer">FREEZER INTELIGENTE · PROJETO DE EXTENSÃO</div>
-  </main>
-  <script src="index.js"></script>
+        <footer>Freezer Inteligente · Projeto IoT</footer>
+    </main>
+    <script src="script.js"></script>
 </body>
-
 </html>
