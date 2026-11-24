@@ -97,10 +97,6 @@ O protótipo não possui relé, não aciona o compressor e não substitui termô
 - Verificar a tensão do barramento I2C: GPIOs do ESP32 trabalham com 3,3 V e não devem receber 5 V. Se necessário, usar conversor de nível lógico.
 - Para uso comercial, verificar a licença ThingSpeak; a modalidade gratuita é destinada a projetos não comerciais.
 
-## Vídeo de demonstração
-
-**Inserir o link do vídeo de montagem, simulação ou funcionamento do protótipo:** [LINK DO VÍDEO]
-
 ## Estrutura
 
 ```text
